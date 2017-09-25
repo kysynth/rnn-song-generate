@@ -7,7 +7,7 @@
 - Tensorflow (It is recommended to get Python 3 and Tensorflow using [Anaconda](https://anaconda.org/), especially if you are using Windows.)
 - [mido](http://mido.readthedocs.io/en/latest/)
 
-## Sample
+## Samples
 The following samples are created by the model (LSTM, 1 layer, 512 neurons) that was trained by 295 classical piano songs from [Classical Piano Midi Page](http://www.piano-midi.de/) for about 1000 epochs.
 - [Sample 1](https://www.dropbox.com/s/vymdt07bkls7o7n/sample_1.mp3?dl=0)
 - [Sample 2](https://www.dropbox.com/s/epp41z7zkk63duk/sample_2.mp3?dl=0)
