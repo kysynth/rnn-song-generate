@@ -1,6 +1,6 @@
 # rnn-song-generate
 - Use [Recurrent Neural Network](https://en.wikipedia.org/wiki/Recurrent_neural_network) to create songs.
-- Note that some features are still under development.
+- Some features are still under development.
 
 ## Requirements
 - Python 3
