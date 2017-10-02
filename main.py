@@ -39,10 +39,12 @@ def main():
 def get_args():
     """ Add arguments and return parsed arguments.
     """
-    # TODO: add --verbose
-    # TODO: use threshold of loss instead of epoch  
-    # TODO: add --train_restore to restore from previous model
-    # TODO: need better way to store model and parameter
+    
+    # TODO: add --train_restore to provide options of restore from previous model and train it later
+    # TODO: need better way to store model (how many neurons used to train this model etc, save in prefix?) and parameter such as number of neurons into a configuration file
+    # TODO: Optimize melo to tensor
+    # TODO: Make OS-independent
+    # TODO: AWS
     
     parser = argparse.ArgumentParser()
 
@@ -61,7 +63,9 @@ def get_args():
     parser.add_argument('--train_dataset_name',type=str,help='The dataset pickle the model will use.')
     parser.add_argument('--train_num_neurons',type=int,default=512,help='Number of neurons this single-layer RNN will use.')
     parser.add_argument('--train_learning_rate',type=float,default=0.001,help='Learning rate that RNN will use during training.')
-    parser.add_argument('--train_epoch',type=int,default=10000,help='Number of epochs that the model will be trained.')
+    parser.add_argument('--train_loss_threshold',type=float,default=0.008,help='If the training loss is lower than this threshold, the program will stop training the model. Set this to -1 to never stop training according to loss.')
+    parser.add_argument('--train_epoch_threshold',type=int,default=10000,help='If number of epochs exceed this threshold, the program will stop training the model. Set this to -1 to never stop training according to number of epochs.')
+    parser.add_argument('--train_save_per_epoch',type=int,default=100,help='This number determines after every how many epochs does the program save the model.')
     
     # How to prepare dataset from Midi files
     parser.add_argument('--train_num_bars',type=int,default=4,help='Number of bars that RNN will look at during one training.')
@@ -135,30 +139,42 @@ def load_dataset(args):
 def train_model(args, training_set):
     """ Train the RNN model from training_set.
     """
+    print("Trying to run session...")
     model_path_prefix = path.join('.','model',args.train_model_prefix)
     rnn_model = Model(args)
     rnn_model.construct_graph()
     
-    print("Trying to run session...")
     with tf.Session() as sess:
         print("Trying to initialize...")
         rnn_model.init.run()
-        num_epoch = args.train_epoch
-        for epoch in range(num_epoch):
+        
+        epoch_threshold = args.train_epoch_threshold
+        if epoch_threshold == -1: # do not stop training according to number of epochs. See documentation for --train_epoch_threshold
+            epoch_threshold = math.inf
+        loss_threshold = args.train_loss_threshold
+        if loss_threshold == -1: # do not stop training according to loss. See documentation for --train_loss_threshold
+            loss_threshold = 0
+        
+        epoch = 1
+        loss_value = math.inf
+        
+        while epoch <= epoch_threshold and loss_value >= loss_threshold:
             for mini_batch in training_set:
                 ops, feed_dict = rnn_model.get_train_ops(mini_batch)
                 optimizing_op, loss = ops
                 sess.run(optimizing_op,feed_dict=feed_dict)
+                       
             
             # This loss is the loss of last batch, not the average loss acorss all batches
             loss_value = loss.eval(feed_dict=feed_dict)
             
-            if epoch % 1 == 0:
-                print(epoch,"Loss:",loss_value)
-            if epoch % 100 == 0:
+            print(epoch,"Loss:",loss_value)
+            if epoch % args.train_save_per_epoch == 0:
                 save_path = rnn_model.saver.save(sess, "%s-%i" % (model_path_prefix, epoch))
-        
-        save_path = rnn_model.saver.save(sess, "%s-%i" % (model_path_prefix, num_epoch-1))
+                print("Model saved in file: %s" % save_path)
+            epoch += 1 
+            
+        save_path = rnn_model.saver.save(sess, "%s-%i" % (model_path_prefix, epoch-1))
         print("Model saved in file: %s" % save_path)
        
 def compose_music(args, tools):
